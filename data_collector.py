@@ -206,40 +206,40 @@ def upsert_bonds(conn, bonds: list[dict]) -> tuple[int, int]:
         ]
 
         vals = [
-            bond.get("isin0") or isin,
-            isin,
-            bond.get("name"),
-            bond.get("issuer"),
-            bond.get("primary_borrower"),
-            bond.get("borrower_country"),
-            bond.get("nominal_currency"),
-            bond.get("issue_volume_bln"),
-            bond.get("current_nominal"),
-            bond.get("min_lot"),
-            bond.get("price_pct"),
-            bond.get("nkd"),
-            bond.get("coupon_size"),
-            bond.get("current_coupon_pct"),
-            bond.get("coupon_freq"),
-            bond.get("coupon_type"),
-            bond.get("is_subordinated"),
-            bond.get("has_guarantee"),
-            bond.get("issuer_type"),
-            bond.get("issue_date"),
-            bond.get("maturity_date"),
-            bond.get("moex_duration"),
-            bond.get("moex_yield"),
-            bond.get("current_yield"),
-            bond.get("board_group"),
-            bond.get("board_id"),
-            bond.get("secid"),
-            bond.get("moex_yield"),
-            bond.get("moex_duration"),
-            bond.get("moex_price"),
-            bond.get("moex_nkd"),
-            bond.get("moex_volume_15d"),
-            bond.get("is_qualified"),
-            bond.get("payments_known"),
+            _clean_val(bond.get("isin0") or isin, "isin0"),
+            _clean_val(isin, "isin"),
+            _clean_val(bond.get("name"), "name"),
+            _clean_val(bond.get("issuer"), "issuer"),
+            _clean_val(bond.get("primary_borrower"), "primary_borrower"),
+            _clean_val(bond.get("borrower_country"), "borrower_country"),
+            _clean_val(bond.get("nominal_currency"), "nominal_currency"),
+            _clean_val(bond.get("issue_volume_bln"), "issue_volume_bln"),
+            _clean_val(bond.get("current_nominal"), "current_nominal"),
+            _clean_val(bond.get("min_lot"), "min_lot"),
+            _clean_val(bond.get("price_pct"), "price_pct"),
+            _clean_val(bond.get("nkd"), "nkd"),
+            _clean_val(bond.get("coupon_size"), "coupon_size"),
+            _clean_val(bond.get("current_coupon_pct"), "current_coupon_pct"),
+            _clean_val(bond.get("coupon_freq"), "coupon_freq"),
+            _clean_val(bond.get("coupon_type"), "coupon_type"),
+            _clean_val(bond.get("is_subordinated"), "is_subordinated"),
+            _clean_val(bond.get("has_guarantee"), "has_guarantee"),
+            _clean_val(bond.get("issuer_type"), "issuer_type"),
+            _clean_val(bond.get("issue_date"), "issue_date"),
+            _clean_val(bond.get("maturity_date"), "maturity_date"),
+            _clean_val(bond.get("moex_duration"), "moex_duration"),
+            _clean_val(bond.get("moex_yield"), "moex_yield"),
+            _clean_val(bond.get("current_yield"), "current_yield"),
+            _clean_val(bond.get("board_group"), "board_group"),
+            _clean_val(bond.get("board_id"), "board_id"),
+            _clean_val(bond.get("secid"), "secid"),
+            _clean_val(bond.get("moex_yield"), "moex_yield"),
+            _clean_val(bond.get("moex_duration"), "moex_duration"),
+            _clean_val(bond.get("moex_price"), "moex_price"),
+            _clean_val(bond.get("moex_nkd"), "moex_nkd"),
+            _clean_val(bond.get("moex_volume_15d"), "moex_volume_15d"),
+            _clean_val(bond.get("is_qualified"), "is_qualified"),
+            _clean_val(bond.get("payments_known"), "payments_known"),
             datetime.now(),
         ]
 
@@ -297,6 +297,39 @@ def import_excel_data(xlsx_path: str) -> int:
     return inserted + updated
 
 
+NUMERIC_COLS = {
+    "yield_cb", "yield_dohod", "yield_avg", "yield_deviation",
+    "liquidity_cb", "liquidity_avg",
+    "issue_volume_bln", "years_to_date", "duration",
+    "ytm", "yield_no_reinvest", "reinvest_profit_pct",
+    "simple_yield", "current_yield",
+    "credit_quality_num", "issuer_quality", "inside_q", "outside_q",
+    "netdebt_equity_rank", "liquidity_ratio", "median_daily_turnover",
+    "complexity", "size_rank",
+    "current_nominal", "min_lot", "price_pct", "nkd",
+    "coupon_size", "current_coupon_pct", "coupon_freq",
+    "frn_premium_discount",
+    "board_group", "moex_yield", "moex_duration", "moex_price",
+    "moex_nkd", "moex_volume_15d", "g_spread",
+}
+
+
+def _clean_val(val, col: str):
+    if val is None or (isinstance(val, float) and str(val) == "nan"):
+        return None
+    if isinstance(val, str):
+        val = val.strip()
+        if val in ("-", "", "—", "–", "N/A", "n/a", "null", "NULL", "#N/A", "#VALUE!"):
+            return None
+        if col in NUMERIC_COLS:
+            val = val.replace(",", ".").replace(" ", "").replace("\xa0", "")
+            try:
+                return float(val)
+            except (ValueError, TypeError):
+                return None
+    return val
+
+
 def upsert_bonds_from_df(conn, df: pd.DataFrame) -> tuple[int, int]:
     inserted = 0
     updated = 0
@@ -320,7 +353,7 @@ def upsert_bonds_from_df(conn, df: pd.DataFrame) -> tuple[int, int]:
     ]
 
     for _, row in df.iterrows():
-        vals = [row.get(c) for c in db_cols[:-1]] + [datetime.now()]
+        vals = [_clean_val(row.get(c), c) for c in db_cols[:-1]] + [datetime.now()]
         placeholders = ", ".join(["%s"] * len(vals))
         col_str = ", ".join(db_cols)
         update_cols = [c for c in db_cols if c != "isin"]
