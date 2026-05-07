@@ -427,7 +427,84 @@ def run_full_collection(xlsx_path: str | None = None):
     log.info("=== Collection %s at %s ===", status, finished)
 
 
+def run_fast_collection(xlsx_path: str | None = None):
+    started = datetime.now()
+    log.info("=== Starting FAST collection at %s ===", started)
+
+    conn = get_db_conn()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO collection_log (status, started_at) VALUES ('running', %s) RETURNING id", (started,))
+    log_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+
+    errors = 0
+    total_inserted = 0
+    total_updated = 0
+
+    try:
+        if xlsx_path and os.path.exists(xlsx_path):
+            df = pd.read_excel(xlsx_path, sheet_name="data", engine="openpyxl")
+            df.columns = [
+                "isin0", "rating", "industry", "yield_cb", "yield_dohod", "yield_avg",
+                "yield_deviation", "yield_category", "liquidity_cb", "liquidity_dohod",
+                "liquidity_avg", "liquidity_category", "isin", "name", "issuer",
+                "primary_borrower", "borrower_country", "nominal_currency",
+                "issue_volume_bln", "nearest_date_str", "years_to_date", "duration",
+                "event_at_date", "ytm", "yield_no_reinvest", "reinvest_profit_pct",
+                "simple_yield", "current_yield", "credit_quality_rank",
+                "credit_quality_num", "issuer_quality", "inside_q", "outside_q",
+                "netdebt_equity_rank", "liquidity_ratio", "median_daily_turnover",
+                "complexity", "size_rank", "issue_date", "maturity_date",
+                "yield_calc_date", "current_nominal", "min_lot", "price_pct", "nkd",
+                "coupon_size", "current_coupon_pct", "coupon_freq", "coupon_type",
+                "is_subordinated", "has_guarantee", "issuer_type", "base_index_frn",
+                "frn_premium_discount",
+            ] + [f"extra_{i}" for i in range(len(df.columns) - 54)]
+            df = df.dropna(subset=["isin"])
+            df = df.where(pd.notnull(df), None)
+            ins, upd = upsert_bonds_from_df(conn, df)
+            total_inserted += ins
+            total_updated += upd
+            log.info("Excel import: %d inserted, %d updated", ins, upd)
+
+        bonds = fetch_all_bonds()
+        log.info("Fetched %d bonds from MOEX API (skip enrichment)", len(bonds))
+
+        ins, upd = upsert_bonds(conn, bonds)
+        total_inserted += ins
+        total_updated += upd
+        log.info("API upsert: %d inserted, %d updated", ins, upd)
+
+        status = "completed"
+    except Exception as e:
+        log.error("Collection failed: %s", e, exc_info=True)
+        status = "failed"
+        errors += 1
+
+    finished = datetime.now()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE collection_log SET finished_at=%s, status=%s, bonds_found=%s, "
+        "bonds_updated=%s, bonds_inserted=%s, errors=%s WHERE id=%s",
+        (finished, status, total_inserted + total_updated, total_updated, total_inserted, errors, log_id),
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    log.info("=== FAST collection %s at %s ===", status, finished)
+
+
 if __name__ == "__main__":
     import sys
-    xlsx = sys.argv[1] if len(sys.argv) > 1 else None
-    run_full_collection(xlsx_path=xlsx)
+    xlsx = None
+    skip_enrich = False
+    for arg in sys.argv[1:]:
+        if arg == "--skip-enrich":
+            skip_enrich = True
+        else:
+            xlsx = arg
+    if skip_enrich:
+        run_fast_collection(xlsx_path=xlsx)
+    else:
+        run_full_collection(xlsx_path=xlsx)
