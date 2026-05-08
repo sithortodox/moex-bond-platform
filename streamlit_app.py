@@ -273,3 +273,6 @@ with st.expander("📋 Журнал сборов данных"):
         st.dataframe(log_df, use_container_width=True, hide_index=True)
     else:
         st.info("Журнал пуст")
+
+st.markdown("---")
+st.markdown("[Deployed Sithortodox](https://t.me/sith_ortodox)")
