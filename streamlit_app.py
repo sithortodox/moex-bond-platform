@@ -488,10 +488,16 @@ with tabs[3]:
             st.divider()
             st.markdown("#### Расчёт доходности по своей цене")
 
-            nominal = float(bond.get("current_nominal", 1000) or 1000)
-            coupon = float(bond.get("coupon_size", 0) or 0)
-            freq = int(bond.get("coupon_freq", 1) or 1)
-            nkd = float(bond.get("nkd", 0) or 0)
+            nominal = float(bond.get("current_nominal") or 1000)
+            coupon = float(bond.get("coupon_size") or 0)
+            try:
+                freq = int(float(bond.get("coupon_freq") or 1))
+            except (ValueError, TypeError):
+                freq = 1
+            try:
+                nkd = float(bond.get("nkd") or 0)
+            except (ValueError, TypeError):
+                nkd = 0
 
             custom_price_pct = st.number_input(
                 "Цена покупки, % от номинала",
