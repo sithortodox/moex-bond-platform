@@ -1,4 +1,5 @@
 import os
+import hashlib
 import streamlit as st
 import pandas as pd
 from sqlalchemy import create_engine, text
@@ -7,6 +8,39 @@ DB_URL = os.environ.get("DATABASE_URL", "postgresql://moex:moex123@localhost:543
 engine = create_engine(DB_URL)
 
 st.set_page_config(page_title="MOEX Bond Screener", page_icon="📊", layout="wide")
+
+
+def _hash(pw: str) -> str:
+    return hashlib.sha256(pw.encode()).hexdigest()
+
+
+_CREDENTIALS = {
+    "admin": _hash("simpleWine!811!"),
+}
+
+
+def check_auth():
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+    if st.session_state.authenticated:
+        return True
+
+    st.markdown("## 🔐 Вход в MOEX Bond Screener")
+    with st.form("login_form"):
+        username = st.text_input("Логин")
+        password = st.text_input("Пароль", type="password")
+        submitted = st.form_submit_button("Войти")
+        if submitted:
+            if username in _CREDENTIALS and _hash(password) == _CREDENTIALS[username]:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("Неверный логин или пароль")
+    return False
+
+
+if not check_auth():
+    st.stop()
 
 st.title("📊 MOEX Bond Screener — Облигации Московской биржи")
 st.caption("Аналог dohod.ru/analytic/bonds | Данные из API Мосбиржи + доп. источники")
