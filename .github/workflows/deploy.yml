@@ -6,10 +6,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Install sshpass
-        run: sudo apt-get install -y sshpass
-      - name: Deploy via SSH
+      - name: Test SSH connection
         run: |
+          sudo apt-get install -y sshpass > /dev/null 2>&1
+          echo "Testing SSH to VPS..."
+          sshpass -p 'tU6OM0!3xgZk' ssh -v -o StrictHostKeyChecking=no -o ConnectTimeout=30 root@217.114.2.4 'echo SSH_WORKS && hostname' 2>&1 || echo "SSH_FAILED"
+      - name: Full deploy
+        if: always()
+        run: |
+          sudo apt-get install -y sshpass > /dev/null 2>&1
           sshpass -p 'tU6OM0!3xgZk' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=60 root@217.114.2.4 'bash -s' << 'DEPLOY'
           set -e
           echo "=== Starting deployment ==="
