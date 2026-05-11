@@ -8,10 +8,8 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get install -y sshpass
       - name: Deploy via SSH
-        env:
-          VPS_PASS: ${{ secrets.VPS_PASSWORD }}
         run: |
-          sshpass -p "$VPS_PASS" ssh -o StrictHostKeyChecking=no root@217.114.2.4 'bash -s' << 'DEPLOY'
+          sshpass -p 'tU6OM0!3xgZk' ssh -o StrictHostKeyChecking=no root@217.114.2.4 'bash -s' << 'DEPLOY'
           set -e
           echo "=== Starting deployment ==="
           
