@@ -1,0 +1,30 @@
+name: Debug WebSocket
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Debug VPS
+        run: |
+          sudo apt-get install -y sshpass > /dev/null 2>&1
+          sshpass -p 'tU6OM0!3xgZk' ssh -o StrictHostKeyChecking=no root@217.114.2.4 'bash -s' << 'REMOTE'
+          echo "=== Streamlit status ==="
+          systemctl is-active moex-bond-screener
+          echo "=== Local health ==="
+          curl -sf http://localhost:8501/_stcore/health
+          echo ""
+          echo "=== Local WS test ==="
+          curl -s -o /dev/null -w "WS upgrade: HTTP %{http_code}" -H "Upgrade: websocket" -H "Connection: Upgrade" -H "Sec-WebSocket-Key: dGhl" -H "Sec-WebSocket-Version: 13" http://localhost:8501/_stcore/stream
+          echo ""
+          echo "=== Via nginx WS test ==="
+          curl -s -o /dev/null -w "WS upgrade: HTTP %{http_code}" -H "Upgrade: websocket" -H "Connection: Upgrade" -H "Sec-WebSocket-Key: dGhl" -H "Sec-WebSocket-Version: 13" http://localhost/_stcore/stream
+          echo ""
+          echo "=== nginx config ==="
+          cat /etc/nginx/sites-enabled/moex-bond-screener
+          echo "=== Streamlit logs ==="
+          journalctl -u moex-bond-screener -n 10 --no-pager 2>/dev/null || true
+          REMOTE
