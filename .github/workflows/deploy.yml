@@ -10,26 +10,21 @@ jobs:
       - name: Install sshpass and deploy
         run: |
           sudo apt-get install -y sshpass > /dev/null 2>&1
-          sshpass -p 'tU6OM0!3xgZk' ssh -o StrictHostKeyChecking=no root@217.114.2.4 << 'REMOTE'
+          sshpass -p 'tU6OM0!3xgZk' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=60 root@217.114.2.4 'bash -s' << 'DEPLOY'
           set -e
-          echo "=== Step 1: Packages ==="
+          echo "=== Starting deployment ==="
           apt-get update -qq 2>&1 | tail -1
           DEBIAN_FRONTEND=noninteractive apt-get install -y python3.12 python3.12-venv python3.12-dev postgresql postgresql-contrib nginx git curl certbot python3-certbot-nginx 2>&1 | tail -3
-          echo "=== Step 2: PostgreSQL ==="
           systemctl enable --now postgresql
           sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='moex'" | grep -q 1 || sudo -u postgres psql -c "CREATE USER moex WITH PASSWORD 'moex123';"
           sudo -u postgres psql -lqt | cut -d\| -f1 | grep -qw moex_bonds || sudo -u postgres psql -c "CREATE DATABASE moex_bonds OWNER moex;"
           sudo -u postgres psql -d moex_bonds -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;" 2>/dev/null || true
-          echo "=== Step 3: Clone ==="
           rm -rf /opt/moex-bond-platform
           git clone https://github.com/sithortodox/moex-bond-platform.git /opt/moex-bond-platform 2>&1 | tail -1
-          echo "=== Step 4: Venv ==="
           python3.12 -m venv /opt/moex-bond-platform/venv
           /opt/moex-bond-platform/venv/bin/pip install --upgrade pip -q
           /opt/moex-bond-platform/venv/bin/pip install -r /opt/moex-bond-platform/requirements.txt -q 2>&1 | tail -3
-          echo "=== Step 5: Schema ==="
           sudo -u postgres psql -d moex_bonds -f /opt/moex-bond-platform/schema.sql 2>&1 | tail -3
-          echo "=== Step 6: Service ==="
           echo '[Unit]
           Description=MOEX Bond Screener
           After=network.target postgresql.service
@@ -46,8 +41,7 @@ jobs:
           WantedBy=multi-user.target' > /etc/systemd/system/moex-bond-screener.service
           systemctl daemon-reload
           systemctl enable moex-bond-screener
-          systemctl start moex-bond-screener
-          echo "=== Step 7: Nginx ==="
+          systemctl restart moex-bond-screener
           echo 'server {
               listen 80;
               server_name finpa.ru www.finpa.ru;
@@ -68,12 +62,10 @@ jobs:
           rm -f /etc/nginx/sites-enabled/default
           nginx -t 2>&1
           systemctl reload nginx
-          echo "=== Step 8: SSL ==="
-          sleep 15
+          sleep 10
           curl -sf http://localhost:8501/_stcore/health && echo " Streamlit OK"
           certbot --nginx -d finpa.ru -d www.finpa.ru --non-interactive --agree-tos --email Aktiv0999@gmail.com 2>&1 || true
-          echo "=== Step 9: Data ==="
           nohup /opt/moex-bond-platform/venv/bin/python3.12 /opt/moex-bond-platform/data_collector.py >> /var/log/moex-collector.log 2>&1 &
           (crontab -l 2>/dev/null; echo "0 2 * * * /opt/moex-bond-platform/venv/bin/python3.12 /opt/moex-bond-platform/data_collector.py >> /var/log/moex-collector.log 2>&1") | crontab -
           echo "=== DEPLOY COMPLETE ==="
-          REMOTE
+          DEPLOY
