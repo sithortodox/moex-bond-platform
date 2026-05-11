@@ -6,10 +6,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Check VPS SSH
-        run: |
-          sudo apt-get install -y sshpass > /dev/null 2>&1
-          # Check if port 22 is open
-          timeout 10 bash -c 'echo > /dev/tcp/217.114.2.4/22 && echo "Port 22 OPEN" || echo "Port 22 CLOSED"' 2>&1 || echo "Port test timeout"
-          # Try SSH with verbose output
-          sshpass -p 'tU6OM0!3xgZk' ssh -vvv -o StrictHostKeyChecking=no -o ConnectTimeout=15 -o PreferredAuthentications=password -o PubkeyAuthentication=no root@217.114.2.4 'echo SSH_OK' 2>&1 | tail -30
+      - uses: actions/checkout@v4
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+      - name: Copy deploy script
+        run: sshpass -p 'tU6OM0!3xgZk' scp -o StrictHostKeyChecking=no deploy.sh root@217.114.2.4:/tmp/deploy.sh
+      - name: Run deploy script
+        run: sshpass -p 'tU6OM0!3xgZk' ssh -o StrictHostKeyChecking=no root@217.114.2.4 'bash /tmp/deploy.sh && echo DEPLOY_OK'
