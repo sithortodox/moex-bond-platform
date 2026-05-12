@@ -1,0 +1,8 @@
+.git
+.github
+README.md
+result.md
+deploy.sh
+venv
+__pycache__
+*.pyc

@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: moex
+      POSTGRES_PASSWORD: moex123
+      POSTGRES_DB: moex_bonds
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SQL", "pg_isready", "-U", "moex"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      DATABASE_URL: postgresql://moex:moex123@db:5432/moex_bonds
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./data_collector.py:/app/data_collector.py
+      - ./streamlit_app.py:/app/streamlit_app.py
+      - ./.streamlit:/app/.streamlit
+
+volumes:
+  pgdata:
