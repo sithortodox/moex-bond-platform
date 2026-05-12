@@ -2,7 +2,7 @@ requests>=2.32.3
 pandas>=2.2.3
 openpyxl>=3.1.5
 psycopg2-binary>=2.9.9
-streamlit>=1.40.0
+streamlit==1.45.0
 SQLAlchemy>=2.0.36
 python-dateutil>=2.9.0
 streamlit-aggrid>=0.3.4
