@@ -198,9 +198,22 @@ with st.sidebar:
             run_collector()
         st.rerun()
 
-    import streamlit.components.v1 as components
-    components.iframe("http://138.124.181.35:8502", height=80, scrolling=False)
-filtered = df.copy()
+
+    st.link_button("Upload Excel (.xlsx)", "/upload-page")
+    import glob, os as os_mod
+    xlsx_files = sorted(glob.glob("/app/data/*.xlsx"))
+    if xlsx_files:
+        selected = st.selectbox("Imported files", xlsx_files, format_func=lambda x: os_mod.path.basename(x))
+        if st.button("Apply to DB"):
+            from data_collector import import_excel_data
+            try:
+                count = import_excel_data(selected)
+                st.success(f"Imported {count} records")
+                st.cache_data.clear()
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error: {e}")
+    filtered = df.copy()
 
 if search_text:
     mask = (

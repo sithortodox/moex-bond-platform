@@ -26,6 +26,7 @@ services:
       - ./streamlit_app.py:/app/streamlit_app.py
       - ./data_collector.py:/app/data_collector.py
       - ./.streamlit:/app/.streamlit
+      - ./file_uploader_component:/app/file_uploader_component
     depends_on:
       db:
         condition: service_healthy

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8">
+<style>
+body{margin:0;padding:4px 0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px}
+.row{display:flex;align-items:center;gap:8px}
+button{background:#1f77b4;color:#fff;border:none;padding:5px 14px;border-radius:4px;cursor:pointer;font-size:13px}
+button:hover{background:#166bb5}
+button:disabled{background:#aaa;cursor:default}
+.msg{font-size:13px}
+.ok{color:#21c35e}.err{color:#ea4335}.wait{color:#888}
+</style>
+</head>
+<body>
+<div class="row">
+<input type="file" id="f" accept=".xlsx">
+<button id="btn" disabled>Upload & Import</button>
+<span id="msg"></span>
+</div>
+<script>
+const f=document.getElementById('f');
+const btn=document.getElementById('btn');
+const msg=document.getElementById('msg');
+f.addEventListener('change',()=>{btn.disabled=!f.files.length});
+btn.addEventListener('click',()=>{
+  if(!f.files.length)return;
+  btn.disabled=true;
+  msg.className='msg wait';
+  msg.textContent='Uploading...';
+  const reader=new FileReader();
+  reader.onload=function(){
+    const b64=reader.result.split(',')[1];
+    Streamlit.setComponentValue({name:f.files[0].name,data:b64});
+  };
+  reader.readAsDataURL(f.files[0]);
+});
+Streamlit.setComponentReady();
+Streamlit.setFrameHeight(40);
+</script>
+</body>
+</html>
