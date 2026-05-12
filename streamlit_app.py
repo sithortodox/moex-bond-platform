@@ -76,10 +76,9 @@ def get_distinct_values(col: str) -> list:
 
 
 def run_collector():
-    from data_collector import run_full_collection
-    run_full_collection()
+    import subprocess, os, sys
+    subprocess.Popen([sys.executable, "-m", "data_collector", "--skip-enrich"], cwd="/app", stdout=open("/tmp/collector.log", "a"), stderr=open("/tmp/collector.log", "a"))
     st.cache_data.clear()
-
 
 if "favorites" not in st.session_state:
     st.session_state.favorites = set()
@@ -162,7 +161,7 @@ with st.sidebar:
         format_func=lambda c: DISPLAY_NAMES.get(c, c),
     )
 
-    st.divider()
+    st.markdown("---")
     st.header("🔍 Фильтры")
 
     search_text = st.text_input("Поиск по ISIN / названию / эмитенту", "")
@@ -191,7 +190,7 @@ with st.sidebar:
     coupon_range = st.slider("Купон, %", min_value=0.0, max_value=30.0, value=(0.0, 30.0), step=0.5)
     volume_min = st.number_input("Мин. объём торгов 15д, шт.", value=0, min_value=0, step=1000)
 
-    st.divider()
+    st.markdown("---")
     st.header("📥 Управление данными")
 
     if st.button("🔄 Обновить данные из MOEX API", type="secondary"):
@@ -199,21 +198,8 @@ with st.sidebar:
             run_collector()
         st.rerun()
 
-    uploaded = st.file_uploader("Загрузить Excel (лист 'data')", type=["xlsx"])
-    if uploaded and st.button("📥 Импортировать Excel"):
-        import tempfile
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
-            tmp.write(uploaded.getvalue())
-            tmp_path = tmp.name
-        from data_collector import import_excel_data
-        try:
-            count = import_excel_data(tmp_path)
-            st.success(f"Импортировано {count} записей")
-            st.cache_data.clear()
-            st.rerun()
-        except Exception as e:
-            st.error(f"Ошибка импорта: {e}")
-
+    import streamlit.components.v1 as components
+    components.iframe("http://138.124.181.35:8502", height=80, scrolling=False)
 filtered = df.copy()
 
 if search_text:
@@ -485,7 +471,7 @@ with tabs[3]:
                 st.write(f"Дата погашения: {bond.get('maturity_date', '—')}")
                 st.write(f"Тип купона: {bond.get('coupon_type', '—')}")
 
-            st.divider()
+            st.markdown("---")
             st.markdown("#### Расчёт доходности по своей цене")
 
             nominal = float(bond.get("current_nominal") or 1000)

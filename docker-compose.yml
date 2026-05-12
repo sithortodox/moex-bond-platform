@@ -18,8 +18,14 @@ services:
     build: .
     ports:
       - "8501:8501"
+      - "8502:8502"
     environment:
       DATABASE_URL: postgresql://moex:moex123@db:5432/moex_bonds
+    volumes:
+      - ./data:/app/data
+      - ./streamlit_app.py:/app/streamlit_app.py
+      - ./data_collector.py:/app/data_collector.py
+      - ./.streamlit:/app/.streamlit
     depends_on:
       db:
         condition: service_healthy
