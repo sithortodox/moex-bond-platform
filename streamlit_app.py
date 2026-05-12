@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from sqlalchemy import create_engine, text
 from io import BytesIO
 
-DB_URL = os.environ.get("DATABASE_URL", "postgresql://moex:moex123@localhost:5432/moex_bonds")
+DB_URL = os.environ.get("DATABASE_URL", "postgresql://moex:moex_bonds@localhost:5432/moex_bonds")
 engine = create_engine(DB_URL)
 
 st.set_page_config(page_title="MOEX Bond Screener", page_icon="📊", layout="wide")
@@ -18,7 +18,7 @@ def _hash(pw: str) -> str:
 
 
 _CREDENTIALS = {
-    "admin": _hash("simpleWine!811!"),
+    "admin": "4aeacba51e89303b00e830e5ec7c83aa4af978c2526aa9c534c2f4b399dc079f",
 }
 
 

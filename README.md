@@ -73,7 +73,7 @@ git clone https://github.com/sithortodox/moex-bond-platform.git /opt/moex-bond-p
 ```bash
 systemctl enable --now postgresql
 
-sudo -u postgres psql -c "CREATE USER moex WITH PASSWORD 'moex123';"
+sudo -u postgres psql -c "CREATE USER moex WITH PASSWORD '${DB_PASSWORD:-moex123}';"
 sudo -u postgres psql -c "CREATE DATABASE moex_bonds OWNER moex;"
 sudo -u postgres psql -d moex_bonds -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
 ```
@@ -121,7 +121,7 @@ After=network.target postgresql.service
 Type=simple
 User=root
 WorkingDirectory=/opt/moex-bond-platform
-Environment=DATABASE_URL=postgresql://moex:moex123@localhost:5432/moex_bonds
+Environment=DATABASE_URL=postgresql://moex:${DB_PASSWORD:-moex123}@localhost:5432/moex_bonds
 Environment=PATH=/opt/moex-bond-platform/venv/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=/opt/moex-bond-platform/venv/bin/streamlit run /opt/moex-bond-platform/streamlit_app.py \
     --server.port 8501 \
@@ -224,7 +224,7 @@ certbot --nginx -d your-domain.com
 
 | Переменная | По умолчанию | Описание |
 |---|---|---|
-| `DATABASE_URL` | `postgresql://moex:moex123@localhost:5432/moex_bonds` | Подключение к PostgreSQL |
+| `DATABASE_URL` | `postgresql://moex:${DB_PASSWORD:-moex123}@localhost:5432/moex_bonds` | Подключение к PostgreSQL |
 | `MOEX_API_DELAY` | `1.2` | Задержка между запросами к MOEX API (секунды) |
 
 Для изменения отредактируйте `Environment` в systemd-юните.

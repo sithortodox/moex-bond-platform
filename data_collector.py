@@ -13,7 +13,7 @@ from psycopg2.extras import execute_values
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("collector")
 
-DB_URL = os.environ.get("DATABASE_URL", "postgresql://moex:moex123@localhost:5432/moex_bonds")
+DB_URL = os.environ.get("DATABASE_URL", "postgresql://moex:moex_bonds@localhost:5432/moex_bonds")
 MOEX_API_DELAY = float(os.environ.get("MOEX_API_DELAY", "1.2"))
 
 BOARD_GROUPS = [58, 193, 105, 77, 207, 167, 245]

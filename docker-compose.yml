@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: moex
-      POSTGRES_PASSWORD: moex123
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-moex123}
       POSTGRES_DB: moex_bonds
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -20,7 +20,7 @@ services:
       - "8501:8501"
       - "8502:8502"
     environment:
-      DATABASE_URL: postgresql://moex:moex123@db:5432/moex_bonds
+      DATABASE_URL: ${DATABASE_URL:-postgresql://moex:${DB_PASSWORD:-moex123}@db:5432/moex_bonds}
     volumes:
       - ./data:/app/data
       - ./streamlit_app.py:/app/streamlit_app.py

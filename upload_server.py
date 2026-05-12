@@ -15,22 +15,25 @@ def do_import(filepath):
 
 def parse_multipart(body, boundary):
     bnd = b'--' + boundary.encode()
-    parts = body.split(bnd)
-    for part in parts:
-        if b'Content-Disposition' not in part:
-            continue
-        header, sep, file_data = part.partition(b'\r\n\r\n')
-        if not sep:
-            continue
-        if file_data.endswith(b'\r\n'):
-            file_data = file_data[:-2]
-        if file_data.endswith(b'--'):
-            file_data = file_data[:-2]
-        if file_data.endswith(b'\r\n'):
-            file_data = file_data[:-2]
-        m = re.search(rb'filename="([^"]+)"', header)
-        if m:
-            return m.group(1).decode(), file_data
+    start_marker = bnd + b'\r\n'
+    end_marker = b'\r\n' + bnd
+    pos = body.find(start_marker)
+    if pos < 0:
+        return None, None
+    pos += len(start_marker)
+    header_end = body.find(b'\r\n\r\n', pos)
+    if header_end < 0:
+        return None, None
+    headers = body[pos:header_end]
+    data_start = header_end + 4
+    data_end = body.find(end_marker, data_start)
+    if data_end < 0:
+        data_end = body.find(b'\r\n' + bnd + b'--', data_start)
+        if data_end < 0:
+            data_end = len(body)
+    m = re.search(rb'filename="([^"]+)"', headers)
+    if m:
+        return m.group(1).decode(), body[data_start:data_end]
     return None, None
 
 class Handler(BaseHTTPRequestHandler):

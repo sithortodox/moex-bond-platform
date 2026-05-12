@@ -14,7 +14,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
 echo "[2/8] Setting up PostgreSQL..."
 systemctl enable --now postgresql
 sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='moex'" | grep -q 1 || \
-  sudo -u postgres psql -c "CREATE USER moex WITH PASSWORD 'moex123';"
+  sudo -u postgres psql -c "CREATE USER moex WITH PASSWORD '${DB_PASSWORD:-moex123}';"
 sudo -u postgres psql -lqt | cut -d\| -f1 | grep -qw moex_bonds || \
   sudo -u postgres psql -c "CREATE DATABASE moex_bonds OWNER moex;"
 sudo -u postgres psql -d moex_bonds -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;" 2>/dev/null || true
@@ -46,7 +46,7 @@ After=network.target postgresql.service
 Type=simple
 User=root
 WorkingDirectory=/opt/moex-bond-platform
-Environment=DATABASE_URL=postgresql://moex:moex123@localhost:5432/moex_bonds
+Environment=DATABASE_URL=postgresql://moex:${DB_PASSWORD:-moex123}@localhost:5432/moex_bonds
 Environment=PATH=/opt/moex-bond-platform/venv/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=/opt/moex-bond-platform/venv/bin/streamlit run /opt/moex-bond-platform/streamlit_app.py --server.port 8501 --server.address 0.0.0.0 --server.headless true --server.enableCORS false --server.enableXsrfProtection false --browser.gatherUsageStats false
 Restart=always
@@ -86,7 +86,7 @@ nginx -t 2>&1 && systemctl reload nginx
 echo "[8/8] SSL and data collection..."
 sleep 15
 curl -sf http://localhost:8501/_stcore/health && echo " Streamlit OK"
-certbot --nginx -d finpa.ru -d www.finpa.ru --non-interactive --agree-tos --email Aktiv0999@gmail.com 2>&1 || echo "SSL will be done later"
+certbot --nginx -d finpa.ru -d www.finpa.ru --non-interactive --agree-tos --email ${CERTBOT_EMAIL:-admin@example.com} 2>&1 || echo "SSL will be done later"
 nohup /opt/moex-bond-platform/venv/bin/python3.12 /opt/moex-bond-platform/data_collector.py >> /var/log/moex-collector.log 2>&1 &
 (crontab -l 2>/dev/null; echo "0 2 * * * /opt/moex-bond-platform/venv/bin/python3.12 /opt/moex-bond-platform/data_collector.py >> /var/log/moex-collector.log 2>&1") | crontab -
 
